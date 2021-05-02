@@ -1,0 +1,84 @@
+version: "3.9"
+services:
+  rabbit1:
+    image: rabbit-mq-local:latest
+    build:
+      context: ../rabbit
+      dockerfile: Dockerfile
+    container_name: antiseche-rabbitmq-main-node
+    hostname: rabbit1
+    restart: always
+    environment:
+      RABBITMQ_ERLANG_COOKIE: $RABBIT_ERLANG_COOKIE
+      RABBITMQ_NODENAME: rabbit1
+    ports:
+      - 15671:15672
+    networks:
+      - local_networks_notification
+
+  rabbit2:
+    image: rabbit-mq-local:latest
+    build:
+      context: ../rabbit
+      dockerfile: Dockerfile
+    container_name: antiseche-rabbitmq-replica-node-1
+    hostname: rabbit2
+    restart: always
+    depends_on:
+      - rabbit1
+    environment:
+      RABBITMQ_ERLANG_COOKIE: $RABBIT_ERLANG_COOKIE
+      RABBITMQ_NODENAME: rabbit2
+    ports:
+      - 15670:15672
+    networks:
+      - local_networks_notification
+
+  rabbit3:
+    image: rabbit-mq-local:latest
+    build:
+      context: ../rabbit
+      dockerfile: Dockerfile
+    container_name: antiseche-rabbitmq-replica-node-2
+    hostname: rabbit3
+    restart: always
+    depends_on:
+      - rabbit1
+      - rabbit2
+    environment:
+      RABBITMQ_ERLANG_COOKIE: $RABBIT_ERLANG_COOKIE
+      RABBITMQ_NODENAME: rabbit3
+    ports:
+      - 15669:15672
+      - 5672:5672
+    networks:
+      - local_networks_notification
+
+  nginx:
+    image: nginx-rabbitmq-cluster:latest
+    build:
+      args:
+        FILE_PATH: nginx.conf
+      context: ../nginx
+      dockerfile: Dockerfile
+    container_name: antiseche-rabbitmq-nginx-reverse-proxy
+    restart: always
+    hostname: nginx
+    depends_on:
+      - rabbit1
+      - rabbit2
+      - rabbit3
+    ports:
+      - 5100:5100
+    networks:
+      - local_networks_notification
+    volumes:
+      - rabbitmq_vol_master:/var/log/nginx
+
+networks:
+  local_networks_notification:
+    external:
+      name: resolute
+
+volumes:
+  rabbitmq_vol_master:

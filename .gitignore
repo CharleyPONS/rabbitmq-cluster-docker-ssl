@@ -1,0 +1,6 @@
+/.idea
+/.git
+/.env
+*.launch
+.DS_STORE
+/log
